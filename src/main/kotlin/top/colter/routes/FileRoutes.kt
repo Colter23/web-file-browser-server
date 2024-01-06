@@ -13,6 +13,9 @@ import kotlin.io.path.*
 var basePath = ""
 var baseFile = Path(basePath)
 
+// 临时
+val textExtension = listOf("txt", "json", "yaml", "yml", "conf", "kt", "java", "ts", "js", "css", "html", "bat", "xml")
+
 fun Route.fileRouting() {
 
     basePath = environment?.config?.propertyOrNull("file-browser.path")?.getString() ?: ""
@@ -24,7 +27,10 @@ fun Route.fileRouting() {
         }
         get("{path...}") {
             val path = (call.parameters.getAll("path")?.joinToString("/")) ?: ""
-
+            val file = baseFile.resolve(path)
+            if (!file.isDirectory() && textExtension.contains(file.extension)) {
+                call.respondText(file.readText())
+            }
             call.respond(getFolderData(path))
         }
     }
