@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="13d375c6-e5d5-4c20-849f-b2a2751eebb3" name="更改" comment="">
-      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/top/colter/Application.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/top/colter/Application.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/top/colter/plugins/Serialization.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/top/colter/plugins/Serialization.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/top/colter/routes/FileRoutes.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/top/colter/routes/FileRoutes.kt" afterDir="false" />
-    </list>
+    <list default="true" id="13d375c6-e5d5-4c20-849f-b2a2751eebb3" name="更改" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -120,7 +115,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1704543418793</updated>
-      <workItem from="1704543419983" duration="6189000" />
+      <workItem from="1704543419983" duration="6832000" />
     </task>
     <servers />
   </component>

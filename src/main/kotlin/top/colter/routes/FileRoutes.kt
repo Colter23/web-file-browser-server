@@ -9,12 +9,8 @@ import top.colter.models.FolderInfo
 import java.io.File
 import kotlin.io.path.*
 
-
 var basePath = ""
 var baseFile = Path(basePath)
-
-// 临时
-val textExtension = listOf("txt", "json", "yaml", "yml", "conf", "kt", "java", "ts", "js", "css", "html", "bat", "xml")
 
 fun Route.fileRouting() {
 
@@ -28,10 +24,12 @@ fun Route.fileRouting() {
         get("{path...}") {
             val path = (call.parameters.getAll("path")?.joinToString("/")) ?: ""
             val file = baseFile.resolve(path)
-            if (!file.isDirectory() && textExtension.contains(file.extension)) {
-                call.respondText(file.readText())
+            if (!file.isDirectory()) {
+                call.respond(file.readBytes())
+            }else {
+                call.respond(getFolderData(path))
             }
-            call.respond(getFolderData(path))
+
         }
     }
 }
