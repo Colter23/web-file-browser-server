@@ -11,4 +11,5 @@ fun Application.module() {
     configureSerialization()
     configureRouting()
     configureCORS()
+    configureDatabases()
 }
