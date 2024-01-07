@@ -3,25 +3,29 @@ package top.colter.routes
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import top.colter.database.MappingService
 import top.colter.models.FileInfo
 import top.colter.models.FolderData
 import top.colter.models.FolderInfo
+import top.colter.plugins.database
 import java.nio.file.Path
 import kotlin.io.path.*
 
 
-val basePaths = mutableMapOf<String, Path>()
+// TODO("逻辑混乱 需要重写")
+
+var rootPaths = mapOf<String, Path>()
 
 fun Route.fileRouting() {
 
-    val basePathList = environment?.config?.propertyOrNull("file-browser.path")?.getList()
-    basePathList?.forEach {
-        val path = it.replace("\\", "/").removeSuffix("/").split("/").last()
-        basePaths["/$path"] = Path(it)
-    }
+    val mappingService = MappingService(database!!)
 
     route("/file") {
-        get("/") {
+        get ("/") {
+            val mappings = mappingService.getAllMapping()
+            rootPaths = mappings.sortedBy { it.order }.associate {
+                it.mountPath to Path(it.folderPath)
+            }
             call.respond(getFolderData())
         }
         get("{path...}") {
@@ -31,14 +35,13 @@ fun Route.fileRouting() {
             val path = if (pathParams.size == 1) "" else {
                 (pathParams.subList(1, pathParams.size).joinToString("/"))
             }
-            val parentPath = basePaths[rootPath] ?: return@get call.respondText("没有对应路径")
+            val parentPath = rootPaths[rootPath] ?: return@get call.respondText("没有对应路径")
             val file = parentPath.resolve(path)
             if (!file.isDirectory()) {
                 call.respond(file.readBytes())
             }else {
                 call.respond(getFolderData(parentPath, path, rootPath))
             }
-
         }
     }
 }
@@ -48,15 +51,15 @@ fun getFolderData(parentPath: Path? = null, path: String = "", rootPath: String 
     val fileList = mutableListOf<FileInfo>()
 
     if (rootPath.isEmpty()) {
-        basePaths.forEach { (rootPath, path) ->
-            folderList.add(FolderInfo(rootPath, path.name, path.getLastModifiedTime().toString()))
+        rootPaths.forEach { (rootPath, path) ->
+            folderList.add(FolderInfo(rootPath, rootPath.removePrefix("/"), path.getLastModifiedTime().toString()))
         }
         return FolderData(rootPath, folderList, fileList)
     }
 
     val dirs = parentPath?.resolve(path)?.listDirectoryEntries()
     dirs?.forEach {
-        val filePath = "$rootPath/$path/${it.name}"
+        val filePath = if (path.isEmpty()) "$rootPath/${it.name}" else "$rootPath/$path/${it.name}"
         if (it.isDirectory()) {
             folderList.add(FolderInfo(filePath, it.name, it.getLastModifiedTime().toString()))
         }else {
