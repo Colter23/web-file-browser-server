@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class FolderInfo (
-    val path: String,
     val name: String,
+    val path: String,
     val modified: String
 )

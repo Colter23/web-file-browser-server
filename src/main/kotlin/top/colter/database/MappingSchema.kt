@@ -1,8 +1,9 @@
 package top.colter.database
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.datetime.*
-import kotlinx.serialization.Serializable
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
@@ -14,21 +15,8 @@ import top.colter.database.MappingTable.mountPath
 import top.colter.database.MappingTable.order
 import top.colter.database.MappingTable.remark
 import top.colter.database.MappingTable.status
+import top.colter.models.PathMapping
 
-
-@Serializable
-data class PathMapping(
-    // ID
-    val id: Int? = null,
-    // 挂载路径
-    val mountPath: String,
-    // 本地文件路径
-    val folderPath: String,
-    // 备注
-    val remark: String? = "",
-    // 排序
-    val order: Int? = 0
-)
 
 /**
  * 路径映射表
@@ -56,7 +44,7 @@ object MappingTable : Table() {
 }
 
 
-class MappingService(private val database: Database) {
+class MappingService(database: Database) {
     init {
         transaction(database) {
             SchemaUtils.create(MappingTable)

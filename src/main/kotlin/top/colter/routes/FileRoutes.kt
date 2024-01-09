@@ -3,69 +3,61 @@ package top.colter.routes
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import top.colter.database.MappingService
-import top.colter.models.FileInfo
-import top.colter.models.FolderData
-import top.colter.models.FolderInfo
-import top.colter.plugins.database
-import java.nio.file.Path
+import top.colter.models.*
 import kotlin.io.path.*
 
 
-// TODO("逻辑混乱 需要重写")
-
-var rootPaths = mapOf<String, Path>()
+const val FILE_PREFIX = "%FILE%"
 
 fun Route.fileRouting() {
-
-    val mappingService = MappingService(database!!)
-
     route("/file") {
         get ("/") {
-            val mappings = mappingService.getAllMapping()
-            rootPaths = mappings.sortedBy { it.order }.associate {
-                it.mountPath to Path(it.folderPath)
-            }
-            call.respond(getFolderData())
+            call.respond(getFolderData(rootFolder))
         }
         get("{path...}") {
             val pathParams = call.parameters.getAll("path") ?: return@get call.respondText("无法获取path")
-            if (pathParams.isEmpty()) return@get call.respond(getFolderData())
-            val rootPath = "/${pathParams.first()}"
-            val path = if (pathParams.size == 1) "" else {
-                (pathParams.subList(1, pathParams.size).joinToString("/"))
-            }
-            val parentPath = rootPaths[rootPath] ?: return@get call.respondText("没有对应路径")
-            val file = parentPath.resolve(path)
-            if (!file.isDirectory()) {
-                call.respond(file.readBytes())
+            val folderData = getFolderData(rootFolder, pathParams)
+            if (folderData.path.startsWith(FILE_PREFIX)) {
+                call.respond(Path(folderData.path.removePrefix(FILE_PREFIX)).readBytes())
             }else {
-                call.respond(getFolderData(parentPath, path, rootPath))
+                call.respond(folderData)
             }
         }
     }
 }
 
-fun getFolderData(parentPath: Path? = null, path: String = "", rootPath: String = ""): FolderData {
+fun getFolderData(rootFolder: VirtualFolder, paths: List<String>? = null): FolderData {
     val folderList = mutableListOf<FolderInfo>()
     val fileList = mutableListOf<FileInfo>()
 
-    if (rootPath.isEmpty()) {
-        rootPaths.forEach { (rootPath, path) ->
-            folderList.add(FolderInfo(rootPath, rootPath.removePrefix("/"), path.getLastModifiedTime().toString()))
+    var currentFolder = rootFolder
+    paths?.forEachIndexed { index, p ->
+        val folder = currentFolder.children.find { it.name == p }
+        if (folder is RealFolder) {
+            val inPath = if (paths.size == 1) "" else "/" + paths.drop(index + 1).joinToString("/")
+            val realPath = folder.realPath + inPath
+            val path = Path(realPath)
+            if (!path.isDirectory()) {
+                return FolderData("$FILE_PREFIX$realPath", folderList, fileList)
+            }
+            val dirs = path.listDirectoryEntries()
+            dirs.forEach {
+                val filePath = "${folder.path}$inPath/${it.name}"
+                if (it.isDirectory()) {
+                    folderList.add(FolderInfo(it.name, filePath, it.getLastModifiedTime().toString()))
+                }else {
+                    fileList.add(FileInfo(it.name, filePath, it.getLastModifiedTime().toString(), it.fileSize(), it.extension))
+                }
+            }
+            return FolderData("/" + path.joinToString("/"), folderList, fileList)
+        }else if (folder is VirtualFolder) {
+            currentFolder = folder
         }
-        return FolderData(rootPath, folderList, fileList)
+    }
+    currentFolder.children.forEach {
+        val modified = if (it is RealFolder) Path(it.realPath).getLastModifiedTime().toString() else ""
+        folderList.add(FolderInfo(it.name, it.path, modified))
     }
 
-    val dirs = parentPath?.resolve(path)?.listDirectoryEntries()
-    dirs?.forEach {
-        val filePath = if (path.isEmpty()) "$rootPath/${it.name}" else "$rootPath/$path/${it.name}"
-        if (it.isDirectory()) {
-            folderList.add(FolderInfo(filePath, it.name, it.getLastModifiedTime().toString()))
-        }else {
-            fileList.add(FileInfo(filePath, it.name, it.getLastModifiedTime().toString(), it.fileSize(), it.extension))
-        }
-    }
-
-    return FolderData(rootPath, folderList, fileList)
+    return FolderData("/" + paths?.joinToString("/"), folderList, fileList)
 }
